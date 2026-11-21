@@ -15,74 +15,70 @@ import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram
 
 
-GREEN_BULL = "#00B386"
-RED_BEAR = "#EB5B3C"
-BLUE_ACCENT = "#2563EB"
-CYAN_ACCENT = "#0EA5E9"
-AMBER_ACCENT = "#F59E0B"
-PURPLE_ACCENT = "#7C3AED"
+GREEN_BULL = "#2EE88A"      # neon bull green (logo)
+GREEN_BRIGHT = "#6CFFB0"
+RED_BEAR = "#FF4D5E"        # candle red (logo)
+BLUE_ACCENT = "#1FB5E0"     # teal rim (logo)
+CYAN_ACCENT = "#1FB5E0"
+AMBER_ACCENT = "#F7B955"
+PURPLE_ACCENT = "#A78BFA"
+PINK_ACCENT = "#F472B6"
+FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+MONO_FAMILY = "JetBrains Mono, ui-monospace, monospace"
+
+# Neon colour scales for heatmaps
+NEON_DIVERGING = [[0.0, "#FF4D5E"], [0.25, "#7A2333"], [0.5, "#0C151D"], [0.75, "#12704A"], [1.0, "#2EE88A"]]
+NEON_SEQUENTIAL = [[0.0, "#0C151D"], [0.35, "#0E4D4F"], [0.7, "#17A57A"], [1.0, "#6CFFB0"]]
+
+
+def _rgba(hex_c: str, a: float) -> str:
+    h = hex_c.lstrip("#")
+    return f"rgba({int(h[0:2], 16)}, {int(h[2:4], 16)}, {int(h[4:6], 16)}, {a})"
 
 
 def _get_theme_tokens(theme: str = "Dark") -> dict:
-    t = (theme or "Dark").lower()
-    if t == "light":
-        return {
-            "paper_bg": "#FFFFFF",
-            "plot_bg": "#FFFFFF",
-            "grid": "#E2E8F0",
-            "text": "#0F172A",
-            "subtext": "#475569",
-            "legend_bg": "rgba(255, 255, 255, 0.88)",
-            "line_primary": "#2563EB",
-            "mpl_bg": "#FFFFFF",
-        }
-    elif t == "system":
-        return {
-            "paper_bg": "rgba(0,0,0,0)",
-            "plot_bg": "rgba(0,0,0,0)",
-            "grid": "rgba(148, 163, 184, 0.22)",
-            "text": "#64748B",
-            "subtext": "#64748B",
-            "legend_bg": "rgba(148, 163, 184, 0.10)",
-            "line_primary": "#0EA5E9",
-            "mpl_bg": "#F8FAFC",
-        }
-    else:  # Dark (TradingView / Robinhood dark)
-        return {
-            "paper_bg": "#131722",
-            "plot_bg": "#131722",
-            "grid": "#2A2E39",
-            "text": "#E2E8F0",
-            "subtext": "#94A3B8",
-            "legend_bg": "rgba(19, 23, 34, 0.85)",
-            "line_primary": "#38BDF8",
-            "mpl_bg": "#131722",
-        }
+    """Single neon-dark token set (theme arg kept for backwards compatibility)."""
+    return {
+        "paper_bg": "rgba(0,0,0,0)",
+        "plot_bg": "rgba(0,0,0,0)",
+        "grid": "rgba(120, 200, 170, 0.08)",
+        "axis": "rgba(120, 200, 170, 0.18)",
+        "text": "#DCEFE5",
+        "subtext": "#7A948A",
+        "legend_bg": "rgba(0,0,0,0)",
+        "line_primary": BLUE_ACCENT,
+        "mpl_bg": "#0C151D",
+        "hover_bg": "#0A131B",
+    }
 
 
 def _apply_theme(fig: go.Figure, title: str = "", height: int = 420, theme: str = "Dark") -> go.Figure:
     tk = _get_theme_tokens(theme)
     fig.update_layout(
-        title=dict(text=title, font=dict(size=15, color=tk["text"], family="Inter, sans-serif"), x=0.01),
+        title=dict(text=f"<b>{title}</b>" if title else "", font=dict(size=14, color=tk["text"], family="Space Grotesk, " + FONT_FAMILY), x=0.01, y=0.97),
         paper_bgcolor=tk["paper_bg"],
         plot_bgcolor=tk["plot_bg"],
-        font=dict(color=tk["text"], family="Inter, -apple-system, BlinkMacSystemFont, sans-serif", size=12),
+        font=dict(color=tk["subtext"], family=FONT_FAMILY, size=12),
         height=height,
         hovermode="x unified",
-        margin=dict(l=40, r=20, t=52, b=36),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1.0,
-            bgcolor=tk["legend_bg"],
-            font=dict(size=11),
-        ),
-        xaxis=dict(showgrid=True, gridcolor=tk["grid"], zeroline=False, linecolor=tk["grid"]),
-        yaxis=dict(showgrid=True, gridcolor=tk["grid"], zeroline=False, linecolor=tk["grid"]),
+        hoverlabel=dict(bgcolor=tk["hover_bg"], bordercolor=GREEN_BULL, font=dict(color=tk["text"], family=MONO_FAMILY, size=12)),
+        margin=dict(l=44, r=18, t=58, b=36),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1.0, bgcolor=tk["legend_bg"], font=dict(size=11, color=tk["text"])),
+        colorway=[GREEN_BULL, BLUE_ACCENT, AMBER_ACCENT, PURPLE_ACCENT, RED_BEAR, PINK_ACCENT],
     )
+    fig.update_xaxes(showgrid=True, gridcolor=tk["grid"], zeroline=False, linecolor=tk["axis"], tickfont=dict(color=tk["subtext"]), title_font=dict(color=tk["subtext"]))
+    fig.update_yaxes(showgrid=True, gridcolor=tk["grid"], zeroline=False, linecolor=tk["axis"], tickfont=dict(color=tk["subtext"], family=MONO_FAMILY), title_font=dict(color=tk["subtext"]))
+    fig.update_annotations(font=dict(color=tk["text"], size=11))
     return fig
+
+
+def _glow_line(fig: go.Figure, x, y, color: str, name: str, width: float = 2.4, fill: bool = False, **kw):
+    """Draws a soft neon glow underlay + crisp line (optionally with gradient-like fill)."""
+    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", line=dict(color=_rgba(color, 0.18), width=width * 4), hoverinfo="skip", showlegend=False, **kw))
+    fig.add_trace(go.Scatter(
+        x=x, y=y, mode="lines", name=name, line=dict(color=color, width=width),
+        fill="tozeroy" if fill else None, fillcolor=_rgba(color, 0.10) if fill else None, **kw,
+    ))
 
 
 def plot_candlestick_with_ma(df: pd.DataFrame, ticker: str, theme: str = "Dark", chart_style: str = "Area") -> go.Figure:
@@ -99,25 +95,17 @@ def plot_candlestick_with_ma(df: pd.DataFrame, ticker: str, theme: str = "Dark",
                 low=df["Low"],
                 close=df["Close"],
                 name="OHLC",
-                increasing_line_color=GREEN_BULL,
-                decreasing_line_color=RED_BEAR,
+                increasing=dict(line=dict(color=GREEN_BULL, width=1.2), fillcolor=GREEN_BULL),
+                decreasing=dict(line=dict(color=RED_BEAR, width=1.2), fillcolor=RED_BEAR),
             )
         )
     else:
         is_up = float(df["Close"].iloc[-1]) >= float(df["Close"].iloc[0])
         line_c = GREEN_BULL if is_up else RED_BEAR
-        fill_c = "rgba(0, 179, 134, 0.14)" if is_up else "rgba(235, 91, 60, 0.14)"
-        fig.add_trace(
-            go.Scatter(
-                x=df["Date"],
-                y=df["Close"],
-                mode="lines",
-                name="Close Price",
-                line=dict(color=line_c, width=2.4),
-                fill="tozeroy",
-                fillcolor=fill_c,
-            )
-        )
+        _glow_line(fig, df["Date"], df["Close"], line_c, "Close Price", width=2.4, fill=True)
+        lo, hi = float(df["Low"].min()), float(df["High"].max())
+        pad = (hi - lo) * 0.06
+        fig.update_yaxes(range=[lo - pad, hi + pad])
 
     if "SMA_20" in df.columns:
         fig.add_trace(
@@ -126,7 +114,7 @@ def plot_candlestick_with_ma(df: pd.DataFrame, ticker: str, theme: str = "Dark",
                 y=df["SMA_20"],
                 mode="lines",
                 name="20-Day Avg (SMA)",
-                line=dict(color=tk["line_primary"], width=1.6),
+                line=dict(color=tk["line_primary"], width=1.5),
             )
         )
     if "SMA_50" in df.columns:
@@ -140,7 +128,21 @@ def plot_candlestick_with_ma(df: pd.DataFrame, ticker: str, theme: str = "Dark",
             )
         )
     fig.update_layout(xaxis_rangeslider_visible=False)
-    return _apply_theme(fig, f"{ticker} Price Chart", height=430, theme=theme)
+    fig = _apply_theme(fig, f"{ticker} · Price Action", height=450, theme=theme)
+    fig.update_xaxes(
+        rangeselector=dict(
+            buttons=[dict(count=1, label="1M", step="month", stepmode="backward"),
+                     dict(count=3, label="3M", step="month", stepmode="backward"),
+                     dict(count=6, label="6M", step="month", stepmode="backward"),
+                     dict(step="all", label="ALL")],
+            bgcolor="rgba(46,232,138,0.08)", activecolor="rgba(46,232,138,0.30)",
+            bordercolor="rgba(46,232,138,0.25)", borderwidth=1, font=dict(color="#DCEFE5", size=11),
+            x=0, y=1.0, yanchor="bottom",
+        ),
+        showspikes=True, spikecolor="rgba(46,232,138,0.5)", spikethickness=1, spikedash="dot", spikemode="across",
+    )
+    fig.update_layout(legend=dict(y=1.08), margin=dict(t=72))
+    return fig
 
 
 def plot_rsi_chart(df: pd.DataFrame, ticker: str, theme: str = "Dark") -> go.Figure:
@@ -154,6 +156,7 @@ def plot_rsi_chart(df: pd.DataFrame, ticker: str, theme: str = "Dark") -> go.Fig
             line=dict(color=PURPLE_ACCENT, width=2.0),
         )
     )
+    fig.add_hrect(y0=30, y1=70, fillcolor="rgba(31,181,224,0.06)", line_width=0)
     fig.add_hline(y=70, line_dash="dash", line_color=RED_BEAR, annotation_text="Overbought (70)")
     fig.add_hline(y=30, line_dash="dash", line_color=GREEN_BULL, annotation_text="Oversold (30)")
     fig.update_yaxes(range=[0, 100])
@@ -203,7 +206,7 @@ def plot_gradient_descent_curve(loss_df: pd.DataFrame, theme: str = "Dark") -> g
 
 
 def plot_correlation_heatmap(corr_matrix: pd.DataFrame, theme: str = "Dark") -> go.Figure:
-    fig = px.imshow(corr_matrix, text_auto=".2f", color_continuous_scale="RdBu_r", zmin=-1.0, zmax=1.0, aspect="auto")
+    fig = px.imshow(corr_matrix, text_auto=".2f", color_continuous_scale=NEON_DIVERGING, zmin=-1.0, zmax=1.0, aspect="auto")
     return _apply_theme(fig, "Clue Similarity Map (Correlation Heatmap)", height=490, theme=theme)
 
 
@@ -219,7 +222,7 @@ def plot_pca_scree(pca_var_df: pd.DataFrame, theme: str = "Dark") -> go.Figure:
 def plot_2d_projection(df_2d: pd.DataFrame, method_title: str, theme: str = "Dark") -> go.Figure:
     color_map = {"Bullish (Up)": GREEN_BULL, "Neutral (Flat)": AMBER_ACCENT, "Bearish (Down)": RED_BEAR}
     fig = px.scatter(df_2d, x="Dim1", y="Dim2", color="Market_Regime", color_discrete_map=color_map, opacity=0.85)
-    fig.update_traces(marker=dict(size=8))
+    fig.update_traces(marker=dict(size=8, line=dict(width=0.5, color="#04070B")))
     return _apply_theme(fig, f"2D Map — {method_title}", height=380, theme=theme)
 
 
@@ -241,9 +244,9 @@ def plot_cluster_scatter(clustered_df: pd.DataFrame, cluster_col: str, title: st
         color="Team",
         text="Ticker",
         hover_data=["Company", "Market", "Sharpe_Ratio", "Avg_RSI"],
-        color_discrete_sequence=[GREEN_BULL, CYAN_ACCENT, AMBER_ACCENT, PURPLE_ACCENT, RED_BEAR, "#EC4899"],
+        color_discrete_sequence=[GREEN_BULL, CYAN_ACCENT, AMBER_ACCENT, PURPLE_ACCENT, RED_BEAR, PINK_ACCENT],
     )
-    fig.update_traces(textposition="top center", marker=dict(size=12))
+    fig.update_traces(textposition="top center", marker=dict(size=14, line=dict(width=1.5, color="#04070B")), textfont=dict(color="#DCEFE5", size=11))
     fig.update_xaxes(title_text="Risk / Volatility (%)")
     fig.update_yaxes(title_text="Yearly Return (%)")
     return _apply_theme(fig, title, height=430, theme=theme)
@@ -252,24 +255,28 @@ def plot_cluster_scatter(clustered_df: pd.DataFrame, cluster_col: str, title: st
 def create_matplotlib_dendrogram(linkage_matrix: np.ndarray, labels: list, theme: str = "Dark"):
     tk = _get_theme_tokens(theme)
     bg = tk["mpl_bg"]
-    txt = "#0F172A" if theme.lower() in ("light", "system") else "#E2E8F0"
+    txt = "#DCEFE5"
     fig, ax = plt.subplots(figsize=(10, 4.0), facecolor=bg)
     ax.set_facecolor(bg)
+    from scipy.cluster.hierarchy import set_link_color_palette
+    set_link_color_palette([GREEN_BULL, CYAN_ACCENT, AMBER_ACCENT, PURPLE_ACCENT, PINK_ACCENT])
     dendrogram(
         linkage_matrix,
         labels=labels,
         leaf_rotation=25,
         leaf_font_size=10,
         color_threshold=0.7 * np.max(linkage_matrix[:, 2]),
+        above_threshold_color="#5E7A70",
         ax=ax,
     )
+    ax.grid(axis="y", color=(0.47, 0.78, 0.67, 0.10), linewidth=0.8)
     ax.set_title("Stock Family Tree (Agglomerative Dendrogram)", color=txt, fontsize=12, pad=10)
     ax.set_xlabel("Stock Ticker", color=txt, fontsize=10)
     ax.set_ylabel("Distance", color=txt, fontsize=10)
     ax.tick_params(axis="x", colors=txt)
     ax.tick_params(axis="y", colors=txt)
     for spine in ax.spines.values():
-        spine.set_color("#94A3B8")
+        spine.set_color((0.47, 0.78, 0.67, 0.25))
     plt.tight_layout()
     return fig
 
@@ -277,7 +284,7 @@ def create_matplotlib_dendrogram(linkage_matrix: np.ndarray, labels: list, theme
 def plot_rl_portfolio_performance(traj_df: pd.DataFrame, algorithm_name: str, theme: str = "Dark") -> go.Figure:
     tk = _get_theme_tokens(theme)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=traj_df["Date"], y=traj_df["RL_Portfolio_Value"], mode="lines", name=f"AI Bot ({algorithm_name})", line=dict(color=GREEN_BULL, width=2.4)))
+    _glow_line(fig, traj_df["Date"], traj_df["RL_Portfolio_Value"], GREEN_BULL, f"AI Bot ({algorithm_name})", width=2.4)
     fig.add_trace(go.Scatter(x=traj_df["Date"], y=traj_df["Buy_And_Hold_Value"], mode="lines", name="Just Buy & Hold", line=dict(color=tk["line_primary"], width=1.8, dash="dash")))
     buys = traj_df[traj_df["Action"] == "Buy"].iloc[::4]
     sells = traj_df[traj_df["Action"] == "Sell"].iloc[::4]
@@ -306,7 +313,7 @@ def plot_mlp_loss_curves(loss_df: pd.DataFrame, theme: str = "Dark") -> go.Figur
 
 def plot_confusion_matrix_chart(cm: np.ndarray, title: str = "Confusion Matrix", theme: str = "Dark") -> go.Figure:
     labels = ["Down (0)", "Up (1)"]
-    fig = px.imshow(cm, x=labels, y=labels, text_auto=True, color_continuous_scale="Teal", labels=dict(x="AI Guessed", y="Actually Happened", color="Days"))
+    fig = px.imshow(cm, x=labels, y=labels, text_auto=True, color_continuous_scale=NEON_SEQUENTIAL, labels=dict(x="AI Guessed", y="Actually Happened", color="Days"))
     return _apply_theme(fig, title, height=350, theme=theme)
 
 
@@ -326,7 +333,7 @@ def plot_future_forecast_chart(recent_df: pd.DataFrame, future_df: pd.DataFrame,
             x=list(f_dates) + list(f_dates)[::-1],
             y=list(future_df["Upper_95_Band"]) + list(future_df["Lower_95_Band"])[::-1],
             fill="toself",
-            fillcolor="rgba(0, 179, 134, 0.16)",
+            fillcolor="rgba(46, 232, 138, 0.14)",
             line=dict(color="rgba(255,255,255,0)"),
             hoverinfo="skip",
             name="Normal Wiggle Room (95%)",
@@ -342,9 +349,9 @@ def plot_stock_comparison_chart(df1: pd.DataFrame, ticker1: str, df2: pd.DataFra
     s2 = ((df2["Close"] / float(df2["Close"].iloc[0])) - 1.0) * 100.0
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df1["Date"], y=s1, mode="lines", name=f"{ticker1} (% Return)", line=dict(color=GREEN_BULL, width=2.4)))
+    _glow_line(fig, df1["Date"], s1, GREEN_BULL, f"{ticker1} (% Return)", width=2.4)
     fig.add_trace(go.Scatter(x=df2["Date"], y=s2, mode="lines", name=f"{ticker2} (% Return)", line=dict(color=tk["line_primary"], width=2.4)))
-    fig.add_hline(y=0, line_dash="dot", line_color="#94A3B8")
+    fig.add_hline(y=0, line_dash="dot", line_color="rgba(169,194,181,0.45)")
     fig.update_yaxes(ticksuffix="%")
     return _apply_theme(fig, f"Head-to-Head Growth: {ticker1} vs {ticker2}", height=390, theme=theme)
 
@@ -354,9 +361,9 @@ def plot_investment_growth_chart(df: pd.DataFrame, ticker: str, invested_amount:
     values = invested_amount * (df["Close"] / float(df["Close"].iloc[0]))
     is_profit = float(values.iloc[-1]) >= invested_amount
     line_c = GREEN_BULL if is_profit else RED_BEAR
-    fill_c = "rgba(0, 179, 134, 0.14)" if is_profit else "rgba(235, 91, 60, 0.14)"
+    fill_c = _rgba(line_c, 0.12)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df["Date"], y=values, mode="lines", name="Portfolio Value", line=dict(color=line_c, width=2.4), fill="tozeroy", fillcolor=fill_c))
-    fig.add_hline(y=invested_amount, line_dash="dash", line_color="#94A3B8", annotation_text=f"Invested: {currency}{invested_amount:,.0f}")
+    fig.add_hline(y=invested_amount, line_dash="dash", line_color="rgba(169,194,181,0.45)", annotation_text=f"Invested: {currency}{invested_amount:,.0f}")
     return _apply_theme(fig, f"If You Invested {currency}{invested_amount:,.0f} in {ticker}", height=360, theme=theme)

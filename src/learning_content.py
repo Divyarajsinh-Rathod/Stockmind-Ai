@@ -25,7 +25,7 @@ _SVG_PATHS = {
 }
 
 
-def get_icon(name: str, color: str = "#38BDF8", size: int = 20) -> str:
+def get_icon(name: str, color: str = "#2EE88A", size: int = 20) -> str:
     """Returns a crisp inline Lucide SVG icon."""
     path = _SVG_PATHS.get(name, _SVG_PATHS["info"])
     return (
@@ -265,40 +265,40 @@ for epoch in range(1, max_epochs + 1):
 # Inline SVG Visual Learning Diagrams (Clean, Educational, Contrast-Safe)
 def get_pipeline_svg_diagram() -> str:
     return """
-    <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(56,189,248,0.25);border-radius:12px;padding:16px;margin:12px 0;overflow-x:auto;">
+    <div style="background:rgba(12,21,29,0.82);border:1px solid rgba(46,232,138,0.22);border-radius:16px;padding:16px;margin:12px 0;overflow-x:auto;">
       <svg viewBox="0 0 920 110" width="100%" height="110" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#38BDF8"/>
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#1FB5E0"/>
           </marker>
         </defs>
-        <rect x="10" y="22" width="150" height="62" rx="10" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
-        <text x="85" y="48" fill="#F8FAFC" font-size="12" font-weight="bold" text-anchor="middle">1. Yahoo Finance</text>
-        <text x="85" y="66" fill="#94A3B8" font-size="10" text-anchor="middle">OHLCV Data + Cache</text>
+        <rect x="10" y="22" width="150" height="62" rx="10" fill="#0A131B" stroke="#1FB5E0" stroke-width="1.5"/>
+        <text x="85" y="48" fill="#E8F6EE" font-size="12" font-weight="bold" text-anchor="middle">1. Yahoo Finance</text>
+        <text x="85" y="66" fill="#7A948A" font-size="10" text-anchor="middle">OHLCV Data + Cache</text>
 
-        <line x1="160" y1="53" x2="192" y2="53" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="160" y1="53" x2="192" y2="53" stroke="#1FB5E0" stroke-width="2" marker-end="url(#arrow)"/>
 
-        <rect x="195" y="22" width="150" height="62" rx="10" fill="#1E293B" stroke="#818CF8" stroke-width="1.5"/>
-        <text x="270" y="48" fill="#F8FAFC" font-size="12" font-weight="bold" text-anchor="middle">2. Preprocessing</text>
-        <text x="270" y="66" fill="#94A3B8" font-size="10" text-anchor="middle">Forward-Fill &amp; 80/20 Split</text>
+        <rect x="195" y="22" width="150" height="62" rx="10" fill="#0A131B" stroke="#3CC9C0" stroke-width="1.5"/>
+        <text x="270" y="48" fill="#E8F6EE" font-size="12" font-weight="bold" text-anchor="middle">2. Preprocessing</text>
+        <text x="270" y="66" fill="#7A948A" font-size="10" text-anchor="middle">Forward-Fill &amp; 80/20 Split</text>
 
-        <line x1="345" y1="53" x2="377" y2="53" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="345" y1="53" x2="377" y2="53" stroke="#1FB5E0" stroke-width="2" marker-end="url(#arrow)"/>
 
-        <rect x="380" y="22" width="155" height="62" rx="10" fill="#1E293B" stroke="#A855F7" stroke-width="1.5"/>
-        <text x="457" y="48" fill="#F8FAFC" font-size="12" font-weight="bold" text-anchor="middle">3. Feature Engineering</text>
-        <text x="457" y="66" fill="#94A3B8" font-size="10" text-anchor="middle">19 Indicators + Shift(-1)</text>
+        <rect x="380" y="22" width="155" height="62" rx="10" fill="#0A131B" stroke="#2EE88A" stroke-width="1.5"/>
+        <text x="457" y="48" fill="#E8F6EE" font-size="12" font-weight="bold" text-anchor="middle">3. Feature Engineering</text>
+        <text x="457" y="66" fill="#7A948A" font-size="10" text-anchor="middle">19 Indicators + Shift(-1)</text>
 
-        <line x1="535" y1="53" x2="567" y2="53" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="535" y1="53" x2="567" y2="53" stroke="#1FB5E0" stroke-width="2" marker-end="url(#arrow)"/>
 
-        <rect x="570" y="22" width="155" height="62" rx="10" fill="#1E293B" stroke="#10B981" stroke-width="1.5"/>
-        <text x="647" y="48" fill="#F8FAFC" font-size="12" font-weight="bold" text-anchor="middle">4. 5-Unit ML Engine</text>
-        <text x="647" y="66" fill="#94A3B8" font-size="10" text-anchor="middle">Reg, PCA, Cluster, RL, MLP</text>
+        <rect x="570" y="22" width="155" height="62" rx="10" fill="#0A131B" stroke="#6CFFB0" stroke-width="1.5"/>
+        <text x="647" y="48" fill="#E8F6EE" font-size="12" font-weight="bold" text-anchor="middle">4. 5-Unit ML Engine</text>
+        <text x="647" y="66" fill="#7A948A" font-size="10" text-anchor="middle">Reg, PCA, Cluster, RL, MLP</text>
 
-        <line x1="725" y1="53" x2="757" y2="53" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="725" y1="53" x2="757" y2="53" stroke="#1FB5E0" stroke-width="2" marker-end="url(#arrow)"/>
 
-        <rect x="760" y="22" width="150" height="62" rx="10" fill="#1E293B" stroke="#F59E0B" stroke-width="1.5"/>
-        <text x="835" y="48" fill="#F8FAFC" font-size="12" font-weight="bold" text-anchor="middle">5. Forecast &amp; Eval</text>
-        <text x="835" y="66" fill="#94A3B8" font-size="10" text-anchor="middle">MAE, RMSE, R², Acc</text>
+        <rect x="760" y="22" width="150" height="62" rx="10" fill="#0A131B" stroke="#F7B955" stroke-width="1.5"/>
+        <text x="835" y="48" fill="#E8F6EE" font-size="12" font-weight="bold" text-anchor="middle">5. Forecast &amp; Eval</text>
+        <text x="835" y="66" fill="#7A948A" font-size="10" text-anchor="middle">MAE, RMSE, R², Acc</text>
       </svg>
     </div>
     """
@@ -306,14 +306,14 @@ def get_pipeline_svg_diagram() -> str:
 
 def get_ann_svg_diagram(hidden_str: str = "(32, 16)", activation: str = "RELU") -> str:
     return f"""
-    <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin:10px 0;">
+    <div style="background:rgba(12,21,29,0.82);border:1px solid rgba(46,232,138,0.22);border-radius:16px;padding:14px;margin:10px 0;">
       <svg viewBox="0 0 720 190" width="100%" height="185" xmlns="http://www.w3.org/2000/svg">
-        <text x="90" y="20" fill="#38BDF8" font-size="12" font-weight="bold" text-anchor="middle">Input Layer (19 Features)</text>
-        <text x="290" y="20" fill="#A855F7" font-size="12" font-weight="bold" text-anchor="middle">Hidden Layers {hidden_str}</text>
-        <text x="530" y="20" fill="#10B981" font-size="12" font-weight="bold" text-anchor="middle">Output Layer (1 Node)</text>
+        <text x="90" y="20" fill="#1FB5E0" font-size="12" font-weight="bold" text-anchor="middle">Input Layer (19 Features)</text>
+        <text x="290" y="20" fill="#2EE88A" font-size="12" font-weight="bold" text-anchor="middle">Hidden Layers {hidden_str}</text>
+        <text x="530" y="20" fill="#6CFFB0" font-size="12" font-weight="bold" text-anchor="middle">Output Layer (1 Node)</text>
 
         <!-- Connections -->
-        <g stroke="rgba(148,163,184,0.35)" stroke-width="1.2">
+        <g stroke="rgba(46,232,138,0.22)" stroke-width="1.2">
           <line x1="110" y1="50" x2="250" y2="55"/><line x1="110" y1="50" x2="250" y2="100"/><line x1="110" y1="50" x2="250" y2="145"/>
           <line x1="110" y1="100" x2="250" y2="55"/><line x1="110" y1="100" x2="250" y2="100"/><line x1="110" y1="100" x2="250" y2="145"/>
           <line x1="110" y1="150" x2="250" y2="55"/><line x1="110" y1="150" x2="250" y2="100"/><line x1="110" y1="150" x2="250" y2="145"/>
@@ -323,22 +323,22 @@ def get_ann_svg_diagram(hidden_str: str = "(32, 16)", activation: str = "RELU") 
         </g>
 
         <!-- Input Nodes -->
-        <circle cx="95" cy="50" r="14" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/><text x="95" y="54" fill="#F8FAFC" font-size="9" text-anchor="middle">Close</text>
-        <circle cx="95" cy="100" r="14" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/><text x="95" y="104" fill="#F8FAFC" font-size="9" text-anchor="middle">RSI</text>
-        <circle cx="95" cy="150" r="14" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/><text x="95" y="154" fill="#F8FAFC" font-size="9" text-anchor="middle">MACD</text>
+        <circle cx="95" cy="50" r="14" fill="#0A131B" stroke="#1FB5E0" stroke-width="2"/><text x="95" y="54" fill="#E8F6EE" font-size="9" text-anchor="middle">Close</text>
+        <circle cx="95" cy="100" r="14" fill="#0A131B" stroke="#1FB5E0" stroke-width="2"/><text x="95" y="104" fill="#E8F6EE" font-size="9" text-anchor="middle">RSI</text>
+        <circle cx="95" cy="150" r="14" fill="#0A131B" stroke="#1FB5E0" stroke-width="2"/><text x="95" y="154" fill="#E8F6EE" font-size="9" text-anchor="middle">MACD</text>
 
         <!-- Hidden Nodes -->
-        <circle cx="260" cy="55" r="14" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
-        <circle cx="260" cy="100" r="14" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
-        <circle cx="260" cy="145" r="14" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
-        <circle cx="370" cy="75" r="14" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
-        <circle cx="370" cy="125" r="14" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
-        <text x="315" y="175" fill="#94A3B8" font-size="10" text-anchor="middle">Activation: {activation} | Backpropagation (Adam)</text>
+        <circle cx="260" cy="55" r="14" fill="#0A131B" stroke="#2EE88A" stroke-width="2"/>
+        <circle cx="260" cy="100" r="14" fill="#0A131B" stroke="#2EE88A" stroke-width="2"/>
+        <circle cx="260" cy="145" r="14" fill="#0A131B" stroke="#2EE88A" stroke-width="2"/>
+        <circle cx="370" cy="75" r="14" fill="#0A131B" stroke="#3CC9C0" stroke-width="2"/>
+        <circle cx="370" cy="125" r="14" fill="#0A131B" stroke="#3CC9C0" stroke-width="2"/>
+        <text x="315" y="175" fill="#7A948A" font-size="10" text-anchor="middle">Activation: {activation} | Backpropagation (Adam)</text>
 
         <!-- Output Node -->
-        <circle cx="530" cy="100" r="18" fill="#1E293B" stroke="#10B981" stroke-width="2.5"/>
-        <text x="530" y="104" fill="#10B981" font-size="10" font-weight="bold" text-anchor="middle">Up / Dn</text>
-        <text x="635" y="104" fill="#E2E8F0" font-size="11">P(Close_t+1 &gt; Close_t)</text>
+        <circle cx="530" cy="100" r="18" fill="#0A131B" stroke="#6CFFB0" stroke-width="2.5"/>
+        <text x="530" y="104" fill="#6CFFB0" font-size="10" font-weight="bold" text-anchor="middle">Up / Dn</text>
+        <text x="635" y="104" fill="#DCEFE5" font-size="11">P(Close_t+1 &gt; Close_t)</text>
       </svg>
     </div>
     """
@@ -346,26 +346,26 @@ def get_ann_svg_diagram(hidden_str: str = "(32, 16)", activation: str = "RELU") 
 
 def get_rl_svg_diagram() -> str:
     return """
-    <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:14px;margin:10px 0;">
+    <div style="background:rgba(12,21,29,0.82);border:1px solid rgba(46,232,138,0.22);border-radius:16px;padding:14px;margin:10px 0;">
       <svg viewBox="0 0 720 140" width="100%" height="140" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <marker id="rl_arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981"/>
+            <path d="M 0 1 L 10 5 L 0 9 z" fill="#6CFFB0"/>
           </marker>
         </defs>
-        <rect x="60" y="38" width="180" height="64" rx="12" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
-        <text x="150" y="65" fill="#F8FAFC" font-size="13" font-weight="bold" text-anchor="middle">RL Trading Agent</text>
-        <text x="150" y="84" fill="#94A3B8" font-size="10" text-anchor="middle">Policy π(s) &amp; Q(s, a) Table</text>
+        <rect x="60" y="38" width="180" height="64" rx="12" fill="#0A131B" stroke="#1FB5E0" stroke-width="2"/>
+        <text x="150" y="65" fill="#E8F6EE" font-size="13" font-weight="bold" text-anchor="middle">RL Trading Agent</text>
+        <text x="150" y="84" fill="#7A948A" font-size="10" text-anchor="middle">Policy π(s) &amp; Q(s, a) Table</text>
 
-        <rect x="470" y="38" width="190" height="64" rx="12" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
-        <text x="565" y="65" fill="#F8FAFC" font-size="13" font-weight="bold" text-anchor="middle">Market Environment</text>
-        <text x="565" y="84" fill="#94A3B8" font-size="10" text-anchor="middle">18 States (Trend × RSI × Vol)</text>
+        <rect x="470" y="38" width="190" height="64" rx="12" fill="#0A131B" stroke="#6CFFB0" stroke-width="2"/>
+        <text x="565" y="65" fill="#E8F6EE" font-size="13" font-weight="bold" text-anchor="middle">Market Environment</text>
+        <text x="565" y="84" fill="#7A948A" font-size="10" text-anchor="middle">18 States (Trend × RSI × Vol)</text>
 
-        <path d="M 240 52 Q 355 18 466 52" fill="none" stroke="#10B981" stroke-width="2" marker-end="url(#rl_arr)"/>
-        <text x="355" y="28" fill="#10B981" font-size="11" font-weight="bold" text-anchor="middle">Action A_t: Buy / Sell / Hold</text>
+        <path d="M 240 52 Q 355 18 466 52" fill="none" stroke="#6CFFB0" stroke-width="2" marker-end="url(#rl_arr)"/>
+        <text x="355" y="28" fill="#6CFFB0" font-size="11" font-weight="bold" text-anchor="middle">Action A_t: Buy / Sell / Hold</text>
 
-        <path d="M 470 88 Q 355 125 244 88" fill="none" stroke="#F59E0B" stroke-width="2" marker-end="url(#rl_arr)"/>
-        <text x="355" y="124" fill="#F59E0B" font-size="11" font-weight="bold" text-anchor="middle">Next State S_(t+1) + Reward R_t (% Return)</text>
+        <path d="M 470 88 Q 355 125 244 88" fill="none" stroke="#F7B955" stroke-width="2" marker-end="url(#rl_arr)"/>
+        <text x="355" y="124" fill="#F7B955" font-size="11" font-weight="bold" text-anchor="middle">Next State S_(t+1) + Reward R_t (% Return)</text>
       </svg>
     </div>
     """
