@@ -5,6 +5,7 @@ STOCKMIND AI – Intelligent Stock Market Analytics Platform
 import streamlit as st
 import pandas as pd
 import numpy as np
+from PIL import Image
 
 from src.data_collection import (
     INDIAN_STOCKS,
@@ -74,7 +75,14 @@ from src.learning_content import (
     get_rl_svg_diagram,
 )
 from src.ui_components import (
+    NEON_GREEN,
+    FAVICON_PATH,
     inject_theme_css,
+    render_sidebar_brand,
+    render_sidebar_label,
+    render_ticker_tape,
+    render_stock_hero,
+    render_module_card,
     render_section_header,
     render_simple_guide,
     render_kpi_card,
@@ -86,9 +94,14 @@ from src.ui_components import (
     render_app_footer,
 )
 
+try:
+    _PAGE_ICON = Image.open(FAVICON_PATH)
+except Exception:
+    _PAGE_ICON = "📈"
+
 st.set_page_config(
     page_title="STOCKMIND AI – Intelligent Stock Market Analytics",
-    page_icon="📈",
+    page_icon=_PAGE_ICON,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -115,6 +128,8 @@ ALL_STOCKS = {**INDIAN_STOCKS, **INTERNATIONAL_STOCKS}
 STOCK_LABELS = [f"{k} — {v.split(' (')[0]}" for k, v in ALL_STOCKS.items()]
 TICKER_TO_LABEL = {k: f"{k} — {v.split(' (')[0]}" for k, v in ALL_STOCKS.items()}
 QUICK_WATCHLIST = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "AAPL", "NVDA"]
+TAPE_TICKERS = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS",
+                "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "TSLA", "META"]
 
 
 # =============================================================================
@@ -129,7 +144,7 @@ def _init_state():
         "custom_ticker_input": "",
         "period_choice": "2y",
         "chart_style": "Area",
-        "theme_mode": "System",
+        "theme_mode": "Dark",
         "app_mode": "Beginner Mode",
         "train_split_pct": 80,
     }
@@ -176,6 +191,23 @@ def load_and_prepare_stock(ticker: str, period: str):
     clean_df, clean_report = clean_stock_data(raw_df)
     modeling_df, latest_row, full_feat_df = prepare_modeling_dataset(clean_df)
     return raw_df, clean_df, meta, clean_report, modeling_df, latest_row, full_feat_df
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def load_ticker_tape(tickers: tuple):
+    """Latest close + 1D % change for the scrolling market tape."""
+    items = []
+    for sym in tickers:
+        try:
+            df, meta = fetch_stock_data(sym, period="6mo", use_cache=True)
+        except Exception:
+            continue
+        if df is None or len(df) < 2:
+            continue
+        last, prev = float(df["Close"].iloc[-1]), float(df["Close"].iloc[-2])
+        cur = "₹" if sym.endswith(".NS") else "$"
+        items.append((sym.replace(".NS", ""), f"{cur}{last:,.2f}", (last / prev - 1.0) * 100.0 if prev else 0.0))
+    return items
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -240,28 +272,17 @@ def cached_prediction(ticker: str, period: str, train_ratio: float, model_name: 
 def main():
     _init_state()
 
+    theme_mode = "Dark"
+    inject_theme_css(theme_mode)
+
     with st.sidebar:
-        st.markdown(
-            f"""
-            <div style="display:flex;align-items:center;margin-bottom:2px;">
-                {get_icon('stock', '#00B386', 24)}
-                <span style="font-size:1.30rem;font-weight:800;letter-spacing:-0.02em;">STOCKMIND AI</span>
-            </div>
-            <p style="font-size:0.78rem;margin-top:0;margin-bottom:12px;">Intelligent Market Analytics</p>
-            """,
-            unsafe_allow_html=True,
-        )
+        render_sidebar_brand()
 
-        st.radio("Appearance", ["System", "Light", "Dark"], key="theme_mode", horizontal=True)
-        theme_mode = st.session_state.theme_mode
-        inject_theme_css(theme_mode)
-
-        st.markdown("---")
-        st.radio("Navigation", MAIN_NAV, key="active_nav")
+        render_sidebar_label("Navigate", "dashboard")
+        st.radio("Navigation", MAIN_NAV, key="active_nav", label_visibility="collapsed")
         selected_nav = st.session_state.active_nav
 
-        st.markdown("---")
-        st.markdown(f"{get_icon('database', '#00B386', 15)} **Search or Pick Stock (30 Popular)**", unsafe_allow_html=True)
+        render_sidebar_label("Stock", "database")
         st.selectbox(
             "Popular Stocks",
             STOCK_LABELS,
@@ -277,17 +298,22 @@ def main():
             label_visibility="collapsed",
         )
 
+        st.caption("Pick from 30 popular NSE & US stocks, or type any symbol and press Enter.")
+
+        render_sidebar_label("Settings", "sliders")
         with st.expander("Preferences", expanded=False):
             st.radio("Experience Mode", ["Beginner Mode", "Pro Mode"], key="app_mode")
             st.slider("Train / Test Split (%)", 70, 90, key="train_split_pct", step=5)
 
-        st.markdown("---")
-        st.caption("STOCKMIND AI • Real-Time Analytics Engine")
+        st.caption("STOCKMIND AI · Real-time analytics engine")
 
     app_mode = st.session_state.app_mode
     train_ratio = st.session_state.train_split_pct / 100.0
     active_ticker = st.session_state.active_ticker
     period_choice = st.session_state.period_choice
+
+    # Scrolling market tape
+    render_ticker_tape(load_ticker_tape(tuple(TAPE_TICKERS)))
 
     # 1-Click Active Watchlist Pills (Clearly highlights active stock & switches immediately!)
     w_cols = st.columns(len(QUICK_WATCHLIST))
@@ -301,7 +327,7 @@ def main():
                 on_click=_on_select_watchlist,
                 args=(sym,),
                 type="primary" if is_selected else "secondary",
-                use_container_width=True,
+                width="stretch",
             )
 
     # Load Data (Cached)
@@ -319,32 +345,26 @@ def main():
     prev_close = float(clean_df["Close"].iloc[-2]) if len(clean_df) > 1 else latest_close
     daily_change = latest_close - prev_close
     daily_change_pct = (daily_change / prev_close) * 100.0
-    arrow = "▲" if daily_change >= 0 else "▼"
-    delta_color = "#00B386" if daily_change >= 0 else "#EB5B3C"
 
-    # Hero Price Banner
-    st.markdown(
-        f"""
-        <div class="stock-hero">
-            <div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                    <span class="stock-hero-name">{meta['company_name']}</span>
-                    <span class="ticker-badge">{meta['ticker']}</span>
-                </div>
-                <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
-                    <span class="stock-hero-price">{curr}{latest_close:,.2f}</span>
-                    <span style="font-size:0.98rem;font-weight:700;color:{delta_color};">{arrow} {daily_change:+.2f} ({daily_change_pct:+.2f}%) 1D</span>
-                </div>
-            </div>
-            <div style="text-align:right;font-size:0.80rem;color:var(--text-muted);">
-                <div><strong>Last Market Date:</strong> {meta['last_timestamp']}</div>
-                <div>{meta['source']}</div>
-                <div>Window: <strong>{period_choice.upper()}</strong> &bull; Theme: <strong>{theme_mode}</strong></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    def _fmt_vol(v: float) -> str:
+        for unit, div in (("B", 1e9), ("M", 1e6), ("K", 1e3)):
+            if v >= div:
+                return f"{v / div:.2f}{unit}"
+        return f"{v:,.0f}"
+
+    last_row = clean_df.iloc[-1]
+    avg_vol20 = float(clean_df["Volume"].tail(20).mean())
+    hero_stats = [
+        ("Open", f"{curr}{float(last_row['Open']):,.2f}"),
+        ("Prev close", f"{curr}{prev_close:,.2f}"),
+        ("Day high", f"{curr}{float(last_row['High']):,.2f}"),
+        ("Day low", f"{curr}{float(last_row['Low']):,.2f}"),
+        ("Volume", _fmt_vol(float(last_row["Volume"]))),
+        ("Avg vol 20D", _fmt_vol(avg_vol20)),
+        (f"{period_choice.upper()} high", f"{curr}{float(clean_df['High'].max()):,.0f}"),
+        (f"{period_choice.upper()} low", f"{curr}{float(clean_df['Low'].min()):,.0f}"),
+    ]
+    render_stock_hero(meta, curr, latest_close, daily_change, daily_change_pct, hero_stats, period_choice.upper())
 
     X_train, X_test, y_train, y_test, dates_train, dates_test = chronological_train_test_split(
         modeling_df, FEATURE_COLUMNS, "Target_Next_Close", train_ratio=train_ratio
@@ -384,7 +404,7 @@ def main():
 
         st.plotly_chart(
             plot_candlestick_with_ma(full_feat_df, active_ticker, theme=theme_mode, chart_style=st.session_state.chart_style),
-            use_container_width=True,
+            width="stretch",
         )
 
         # Groww / TradingView Signature Visual Widgets: Range Bar + Technical Signal Meter
@@ -400,7 +420,11 @@ def main():
         with sig_r:
             render_signal_meter(latest_close, latest_sma20, latest_sma50, latest_rsi, latest_macd, latest_macd_sig)
 
-        st.markdown(f"### {get_icon('layers', '#00B386', 18)}AI Analytics Modules", unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="sec-head" style="margin-top:18px;"><div><div class="sec-eyebrow">5 ML engines</div>'
+            f'<h3 class="sec-title" style="font-size:1.25rem;"><span class="icon-chip">{get_icon("layers", NEON_GREEN, 17)}</span>AI Analytics Modules</h3></div></div>',
+            unsafe_allow_html=True,
+        )
         u_cols = st.columns(5)
         module_cards = [
             ("Regression", "Price Models", "10 price models + Up/Down direction", "regression", LAB_NAMES[0]),
@@ -411,22 +435,13 @@ def main():
         ]
         for idx, (tag, title, desc, icon_n, target_lab) in enumerate(module_cards):
             with u_cols[idx]:
-                st.markdown(
-                    f"""
-                    <div class="fin-card" style="min-height:120px;">
-                        <span class="ticker-badge">{tag}</span>
-                        <div style="font-weight:700;margin-top:8px;font-size:0.94rem;">{get_icon(icon_n, '#00B386', 15)}{title}</div>
-                        <div style="font-size:0.79rem;color:var(--text-muted);margin-top:4px;">{desc}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                render_module_card(tag, title, desc, icon_n)
                 st.button(
-                    f"Open {title}",
+                    f"Open {title} →",
                     key=f"open_mod_{idx}",
                     on_click=_on_open_studio_lab,
                     args=(target_lab,),
-                    use_container_width=True,
+                    width="stretch",
                 )
 
     # =========================================================================
@@ -437,7 +452,7 @@ def main():
             "Compare Stocks & What-If Returns Calculator",
             "Compare any two companies side by side or test how an investment would have grown over time.",
             "stock",
-            app_mode,
+            app_mode, eyebrow=selected_nav,
         )
 
         t_cmp, t_calc = st.tabs(["Head-to-Head Stock Comparison", "What-If Investment Calculator"])
@@ -455,7 +470,7 @@ def main():
 
             _, clean_df2, meta2, _, _, _, feat_df2 = load_and_prepare_stock(rival_ticker, period_choice)
             if clean_df2 is not None:
-                st.plotly_chart(plot_stock_comparison_chart(clean_df, active_ticker, clean_df2, rival_ticker, theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_stock_comparison_chart(clean_df, active_ticker, clean_df2, rival_ticker, theme=theme_mode), width="stretch")
 
                 def _quick_stats(df_c, df_f, sym_name):
                     ret_pct = ((float(df_c["Close"].iloc[-1]) / float(df_c["Close"].iloc[0])) - 1.0) * 100.0
@@ -470,7 +485,7 @@ def main():
                         "Current Mood (RSI-14)": round(rsi_now, 1),
                     }
 
-                st.dataframe(pd.DataFrame([_quick_stats(clean_df, full_feat_df, active_ticker), _quick_stats(clean_df2, feat_df2, rival_ticker)]), use_container_width=True)
+                st.dataframe(pd.DataFrame([_quick_stats(clean_df, full_feat_df, active_ticker), _quick_stats(clean_df2, feat_df2, rival_ticker)]), width="stretch")
 
         with t_calc:
             render_simple_guide(
@@ -499,13 +514,13 @@ def main():
             with ic4:
                 render_kpi_card("Shares Owned", f"{shares_bought:.2f}", f"Bought at {curr}{start_p:,.2f}", "neutral", "award")
 
-            st.plotly_chart(plot_investment_growth_chart(clean_df, active_ticker, float(invested), curr, theme=theme_mode), use_container_width=True)
+            st.plotly_chart(plot_investment_growth_chart(clean_df, active_ticker, float(invested), curr, theme=theme_mode), width="stretch")
 
     # =========================================================================
     # 3. PRICE FORECAST
     # =========================================================================
     elif selected_nav == "Price Forecast":
-        render_section_header("AI Price Forecast", f"Next-day and multi-day statistical projections for {active_ticker}.", "target", app_mode)
+        render_section_header("AI Price Forecast", f"Next-day and multi-day statistical projections for {active_ticker}.", "target", app_mode, eyebrow=selected_nav)
         render_simple_guide(
             "How this forecast works",
             f"Today's technical indicators feed into your chosen model to estimate <strong>{active_ticker}'s next closing price</strong>. The shaded green region marks the 95% confidence band.",
@@ -532,20 +547,20 @@ def main():
         with pk4:
             render_kpi_card("Test R² & MAE", f"{pred_out['test_metrics']['R2']:.4f}", f"Avg error: ±{curr}{pred_out['test_metrics']['MAE']:.2f}", "neutral", "award")
 
-        st.plotly_chart(plot_future_forecast_chart(clean_df, pred_out["future_projection_df"], active_ticker, chosen_pred_model, theme=theme_mode), use_container_width=True)
+        st.plotly_chart(plot_future_forecast_chart(clean_df, pred_out["future_projection_df"], active_ticker, chosen_pred_model, theme=theme_mode), width="stretch")
 
         t_tbl, t_hist = st.tabs(["Multi-Day Estimate Table", "Historical Backtest"])
         with t_tbl:
-            st.dataframe(pred_out["future_projection_df"], use_container_width=True)
+            st.dataframe(pred_out["future_projection_df"], width="stretch")
         with t_hist:
-            st.plotly_chart(plot_regression_predictions(pred_out["test_comparison_df"]["Date"], pred_out["test_comparison_df"]["Actual_Next_Close"], pred_out["test_comparison_df"]["Predicted_Next_Close"], chosen_pred_model, active_ticker, theme=theme_mode), use_container_width=True)
-            st.dataframe(pred_out["test_comparison_df"].tail(15), use_container_width=True)
+            st.plotly_chart(plot_regression_predictions(pred_out["test_comparison_df"]["Date"], pred_out["test_comparison_df"]["Actual_Next_Close"], pred_out["test_comparison_df"]["Predicted_Next_Close"], chosen_pred_model, active_ticker, theme=theme_mode), width="stretch")
+            st.dataframe(pred_out["test_comparison_df"].tail(15), width="stretch")
 
     # =========================================================================
     # 4. AI ANALYTICS STUDIO (ALL 5 ML MODULES)
     # =========================================================================
     elif selected_nav == "AI Analytics Studio":
-        render_section_header("AI Analytics Studio", "Interactive modeling suite covering Regression, Dimensionality Reduction, Clustering, RL, and Neural Networks.", "brain", app_mode)
+        render_section_header("AI Analytics Studio", "Interactive modeling suite covering Regression, Dimensionality Reduction, Clustering, RL, and Neural Networks.", "brain", app_mode, eyebrow=selected_nav)
         st.radio("Select Module", LAB_NAMES, key="active_lab", horizontal=True, label_visibility="collapsed")
         selected_lab = st.session_state.active_lab
 
@@ -570,17 +585,17 @@ def main():
             t1, t2, t3, t4 = st.tabs(["Predictions & Scores", "OLS vs Gradient Descent", "Direction & Multi-Target", "How It Works"])
             with t1:
                 chosen_m = st.selectbox("Select Model to Plot", list(reg_res["predictions"].keys()), index=5)
-                st.plotly_chart(plot_regression_predictions(dates_test, y_test.values, reg_res["predictions"][chosen_m]["test_pred"], chosen_m, active_ticker, theme=theme_mode), use_container_width=True)
-                st.plotly_chart(plot_regression_metrics_comparison(metrics_df, theme=theme_mode), use_container_width=True)
-                st.dataframe(metrics_df[["Model", "Train_RMSE", "Test_RMSE", "Train_R2", "Test_R2", "Bias_Variance_Diagnosis"]], use_container_width=True)
+                st.plotly_chart(plot_regression_predictions(dates_test, y_test.values, reg_res["predictions"][chosen_m]["test_pred"], chosen_m, active_ticker, theme=theme_mode), width="stretch")
+                st.plotly_chart(plot_regression_metrics_comparison(metrics_df, theme=theme_mode), width="stretch")
+                st.dataframe(metrics_df[["Model", "Train_RMSE", "Test_RMSE", "Train_R2", "Test_R2", "Bias_Variance_Diagnosis"]], width="stretch")
             with t2:
                 co, cc = st.columns(2)
                 with co:
                     og = reg_res["ols_gd_demo"]
                     st.markdown(f"**OLS Closed-Form:** Slope `{og['OLS']['Slope']}`, Intercept `{og['OLS']['Intercept']}`  \n**Gradient Descent:** Slope `{og['Gradient_Descent']['Slope']}`, Intercept `{og['Gradient_Descent']['Intercept']}`")
-                    st.plotly_chart(plot_gradient_descent_curve(og["loss_history"], theme=theme_mode), use_container_width=True)
+                    st.plotly_chart(plot_gradient_descent_curve(og["loss_history"], theme=theme_mode), width="stretch")
                 with cc:
-                    st.dataframe(reg_res["coef_df"], use_container_width=True, height=340)
+                    st.dataframe(reg_res["coef_df"], width="stretch", height=340)
             with t3:
                 lc1, lc2, lc3, lc4 = st.columns(4)
                 with lc1:
@@ -592,7 +607,7 @@ def main():
                 with lc4:
                     render_kpi_card("F1-Score", f"{log_res['f1_score']:.1f}%", "Balance", "neutral", "award")
                 st.markdown("#### Multivariate Regression (Next Close, High & Low Simultaneously)")
-                st.dataframe(mv_df, use_container_width=True)
+                st.dataframe(mv_df, width="stretch")
             with t4:
                 for k in ["Simple Linear Regression", "Multiple Linear Regression", "Polynomial Regression", "Ridge Regression", "Lasso Regression", "Decision Tree & Model Tree Regression", "Logistic Regression"]:
                     render_algorithm_explainer(k, app_mode)
@@ -622,16 +637,16 @@ def main():
                     {"Method": "Forward Selection (SFS)", "Kept": len(fb["forward_selected"]), "Selected": ", ".join(fb["forward_selected"]), "Removed": ", ".join(fb["forward_removed"])},
                     {"Method": "Backward Elimination (SBS)", "Kept": len(fb["backward_selected"]), "Selected": ", ".join(fb["backward_selected"]), "Removed": ", ".join(fb["backward_removed"])},
                     {"Method": "mRMR", "Kept": len(mrmr["selected"]), "Selected": ", ".join(mrmr["selected"]), "Removed": ", ".join(mrmr["removed"])},
-                ]), use_container_width=True)
-                st.plotly_chart(plot_correlation_heatmap(hc["corr_matrix"], theme=theme_mode), use_container_width=True)
+                ]), width="stretch")
+                st.plotly_chart(plot_correlation_heatmap(hc["corr_matrix"], theme=theme_mode), width="stretch")
             with t2:
-                st.plotly_chart(plot_pca_scree(proj["pca_variance_df"], theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_pca_scree(proj["pca_variance_df"], theme=theme_mode), width="stretch")
                 m_pick = st.selectbox("Select 2D Projection", ["PCA (Unsupervised)", "LDA (Supervised)", "ICA", "Factor Analysis", "MDS", "Isomap"])
                 m_map = {"PCA (Unsupervised)": proj["pca_2d_df"], "LDA (Supervised)": proj["lda_2d_df"], "ICA": proj["ica_2d_df"], "Factor Analysis": proj["fa_2d_df"], "MDS": proj["mds_2d_df"], "Isomap": proj["isomap_2d_df"]}
-                st.plotly_chart(plot_2d_projection(m_map[m_pick], m_pick, theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_2d_projection(m_map[m_pick], m_pick, theme=theme_mode), width="stretch")
             with t3:
-                st.dataframe(ba, use_container_width=True)
-                st.dataframe(proj["fa_loadings_df"], use_container_width=True)
+                st.dataframe(ba, width="stretch")
+                st.dataframe(proj["fa_loadings_df"], width="stretch")
             with t4:
                 render_algorithm_explainer("Feature Selection (Filters, Wrappers & mRMR)", app_mode)
                 render_algorithm_explainer("PCA vs LDA vs ICA & Manifolds", app_mode)
@@ -663,14 +678,14 @@ def main():
 
             t1, t2, t3, t4 = st.tabs(["Risk-Return Map", "Elbow & Quality Metrics", "Dendrogram & DIANA", "How It Works"])
             with t1:
-                st.plotly_chart(plot_cluster_scatter(clust["clustered_stocks_df"], viz_algo, f"Market Behavior Groups ({viz_algo}, k={k_choice})", theme=theme_mode), use_container_width=True)
-                st.dataframe(clust["clustered_stocks_df"][["Ticker", "Company", "Annual_Return_Pct", "Annual_Volatility_Pct", "Market_Behavior_Group"]], use_container_width=True)
+                st.plotly_chart(plot_cluster_scatter(clust["clustered_stocks_df"], viz_algo, f"Market Behavior Groups ({viz_algo}, k={k_choice})", theme=theme_mode), width="stretch")
+                st.dataframe(clust["clustered_stocks_df"][["Ticker", "Company", "Annual_Return_Pct", "Annual_Volatility_Pct", "Market_Behavior_Group"]], width="stretch")
             with t2:
-                st.plotly_chart(plot_elbow_and_silhouette(clust["k_eval_df"], theme=theme_mode), use_container_width=True)
-                st.dataframe(clust["algo_comparison_df"], use_container_width=True)
+                st.plotly_chart(plot_elbow_and_silhouette(clust["k_eval_df"], theme=theme_mode), width="stretch")
+                st.dataframe(clust["algo_comparison_df"], width="stretch")
             with t3:
                 st.pyplot(create_matplotlib_dendrogram(clust["linkage_matrix"], list(clust["clustered_stocks_df"]["Ticker"].values), theme=theme_mode))
-                st.dataframe(clust["diana_splits_df"], use_container_width=True)
+                st.dataframe(clust["diana_splits_df"], width="stretch")
             with t4:
                 render_algorithm_explainer("Clustering (K-Means, K-Medoids, Hierarchical, BIRCH, Chameleon)", app_mode)
                 render_code_explainer("clustering")
@@ -707,12 +722,12 @@ def main():
 
             t1, t2, t3 = st.tabs(["Portfolio Curve", "Policy Table & K-Armed Bandit", "How It Works"])
             with t1:
-                st.plotly_chart(plot_rl_portfolio_performance(rl_res["trajectory_df"], rl_algo, theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_rl_portfolio_performance(rl_res["trajectory_df"], rl_algo, theme=theme_mode), width="stretch")
             with t2:
                 st.markdown("#### K-Armed Bandit (Single-State 4-Strategy Test)")
-                st.dataframe(bandit_res["bandit_summary_df"], use_container_width=True)
+                st.dataframe(bandit_res["bandit_summary_df"], width="stretch")
                 st.markdown("#### Learned State-Action Policy (Q-Table)")
-                st.dataframe(rl_res["policy_df"], use_container_width=True, height=300)
+                st.dataframe(rl_res["policy_df"], width="stretch", height=300)
             with t3:
                 st.markdown(get_rl_svg_diagram(), unsafe_allow_html=True)
                 render_algorithm_explainer("Reinforcement Learning (Bandit, TD Q-Learning & Model-Based Dyna-Q)", app_mode)
@@ -748,9 +763,9 @@ def main():
 
                 cl, cm = st.columns([1.3, 1])
                 with cl:
-                    st.plotly_chart(plot_mlp_loss_curves(nn_res["loss_history_df"], theme=theme_mode), use_container_width=True)
+                    st.plotly_chart(plot_mlp_loss_curves(nn_res["loss_history_df"], theme=theme_mode), width="stretch")
                 with cm:
-                    st.plotly_chart(plot_confusion_matrix_chart(nn_res["confusion_matrix"], "Confusion Matrix", theme=theme_mode), use_container_width=True)
+                    st.plotly_chart(plot_confusion_matrix_chart(nn_res["confusion_matrix"], "Confusion Matrix", theme=theme_mode), width="stretch")
             with t2:
                 nc1, nc2, nc3, nc4 = st.columns(4)
                 with nc1:
@@ -775,10 +790,10 @@ def main():
                     render_kpi_card("Bipolar Sigmoid", f"{n_out['bipolar_sigmoid_output']:.3f}", "Range (-1, +1)", "neutral", "sliders")
                 with nk4:
                     render_kpi_card("ReLU Output", f"{n_out['relu_output']:.3f}", n_out["direction_interpretation"], "pos" if n_out["step_perceptron_output"] == 1 else "neg", "award")
-                st.plotly_chart(plot_activation_functions(n_out["curves_df"], n_out["net_input_z"], theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_activation_functions(n_out["curves_df"], n_out["net_input_z"], theme=theme_mode), width="stretch")
             with t3:
                 st.markdown(get_ann_svg_diagram("(32, 16)", "RELU"), unsafe_allow_html=True)
-                st.dataframe(BIOLOGICAL_VS_ARTIFICIAL_TABLE, use_container_width=True)
+                st.dataframe(BIOLOGICAL_VS_ARTIFICIAL_TABLE, width="stretch")
             with t4:
                 render_algorithm_explainer("Neural Networks (Single Neuron, Perceptron & MLP Backpropagation)", app_mode)
                 render_code_explainer("neural_network")
@@ -787,16 +802,16 @@ def main():
     # 5. CHARTS & DATA
     # =========================================================================
     elif selected_nav == "Charts & Data":
-        render_section_header("Charts, Indicators & Raw Data", f"Full technical analysis, clean CSV export, and data pipeline for {active_ticker}.", "database", app_mode)
+        render_section_header("Charts, Indicators & Raw Data", f"Full technical analysis, clean CSV export, and data pipeline for {active_ticker}.", "database", app_mode, eyebrow=selected_nav)
         t_ind, t_raw, t_pipe = st.tabs(["Technical Charts", "Raw Data & CSV", "Data Pipeline"])
         with t_ind:
-            st.plotly_chart(plot_candlestick_with_ma(full_feat_df, active_ticker, theme=theme_mode, chart_style="Candlestick"), use_container_width=True)
+            st.plotly_chart(plot_candlestick_with_ma(full_feat_df, active_ticker, theme=theme_mode, chart_style="Candlestick"), width="stretch")
             ca, cb = st.columns(2)
             with ca:
-                st.plotly_chart(plot_macd_chart(full_feat_df, active_ticker, theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_macd_chart(full_feat_df, active_ticker, theme=theme_mode), width="stretch")
             with cb:
-                st.plotly_chart(plot_rsi_chart(full_feat_df, active_ticker, theme=theme_mode), use_container_width=True)
-            st.plotly_chart(plot_volume_chart(full_feat_df, active_ticker, theme=theme_mode), use_container_width=True)
+                st.plotly_chart(plot_rsi_chart(full_feat_df, active_ticker, theme=theme_mode), width="stretch")
+            st.plotly_chart(plot_volume_chart(full_feat_df, active_ticker, theme=theme_mode), width="stretch")
             with st.expander("Indicator Explanations", expanded=False):
                 for ind_name, ind_desc in INDICATOR_EXPLANATIONS.items():
                     st.markdown(f"- **{ind_name}:** {ind_desc}")
@@ -810,7 +825,7 @@ def main():
                 render_kpi_card("Latest Date", clean_report["end_date"], "End", "neutral", "stock")
             with c4:
                 render_kpi_card("Missing Fixed", f"{clean_report['missing_values_before']} → {clean_report['missing_values_after']}", "Forward-fill", "pos", "sliders")
-            st.dataframe(clean_df.tail(100), use_container_width=True)
+            st.dataframe(clean_df.tail(100), width="stretch")
             st.download_button(f"Download {active_ticker} CSV", clean_df.to_csv(index=False).encode("utf-8"), f"{active_ticker}_cleaned.csv", "text/csv")
         with t_pipe:
             st.markdown(get_pipeline_svg_diagram(), unsafe_allow_html=True)
@@ -822,14 +837,14 @@ def main():
     # 6. LEARN & GLOSSARY
     # =========================================================================
     elif selected_nav == "Learn & Glossary":
-        render_section_header("Learning Center & Glossary", "Step-by-step guided tour, searchable financial/ML dictionary, and evaluation guide.", "book", app_mode)
+        render_section_header("Learning Center & Glossary", "Step-by-step guided tour, searchable financial/ML dictionary, and evaluation guide.", "book", app_mode, eyebrow=selected_nav)
         t_tour, t_dict, t_eval = st.tabs(["13-Step Guided Tour", "Word Dictionary", "Evaluation Metrics Guide"])
         with t_tour:
             step_idx = st.slider("Select Step (1 to 13)", 1, 13, 1, 1) - 1
             title, expl, why_imp, impl, tip = GUIDED_TOUR_STEPS[step_idx]
             st.markdown(
                 f"""
-                <div class="fin-card" style="border-left:4px solid var(--accent);">
+                <div class="fin-card step-card rim">
                     <span class="ticker-badge">Step {step_idx + 1} of 13</span>
                     <h3 style="margin-top:8px;">{title}</h3>
                     <p><strong>Simple Explanation:</strong> {expl}</p>
@@ -864,24 +879,24 @@ def main():
     # 7. MODEL BENCHMARKS
     # =========================================================================
     elif selected_nav == "Model Benchmarks":
-        render_section_header("Model Benchmarks & Architecture", "Side-by-side performance comparison across all predictive models and analytics modules.", "award", app_mode)
+        render_section_header("Model Benchmarks & Architecture", "Side-by-side performance comparison across all predictive models and analytics modules.", "award", app_mode, eyebrow=selected_nav)
         t_sc, t_arch = st.tabs(["Model Leaderboard", "Platform Architecture"])
         with t_sc:
             reg_all, _, log_res = cached_regression(active_ticker, period_choice, train_ratio, 1.0, 0.05, 2)
             nn_res = cached_mlp(active_ticker, period_choice, train_ratio, (32, 16), "relu", 80)
-            st.plotly_chart(plot_regression_metrics_comparison(reg_all["metrics_df"], theme=theme_mode), use_container_width=True)
-            st.dataframe(reg_all["metrics_df"][["Model", "Train_RMSE", "Test_RMSE", "Train_R2", "Test_R2", "Bias_Variance_Diagnosis"]], use_container_width=True)
+            st.plotly_chart(plot_regression_metrics_comparison(reg_all["metrics_df"], theme=theme_mode), width="stretch")
+            st.dataframe(reg_all["metrics_df"][["Model", "Train_RMSE", "Test_RMSE", "Train_R2", "Test_R2", "Bias_Variance_Diagnosis"]], width="stretch")
             st.subheader("Directional Classifiers (Up vs Down)")
             st.dataframe(pd.DataFrame([
                 {"Classifier": "Logistic Regression", "Train_Acc_%": log_res["train_accuracy"], "Test_Acc_%": log_res["test_accuracy"], "F1_%": log_res["f1_score"]},
                 {"Classifier": "Single-Layer Perceptron", "Train_Acc_%": nn_res["slp_train_accuracy"], "Test_Acc_%": nn_res["slp_test_accuracy"], "F1_%": None},
                 {"Classifier": "Multilayer Perceptron (MLP)", "Train_Acc_%": nn_res["mlp_train_accuracy"], "Test_Acc_%": nn_res["mlp_test_accuracy"], "F1_%": nn_res["mlp_f1"]},
-            ]), use_container_width=True)
+            ]), width="stretch")
         with t_arch:
             st.markdown(
                 """
                 <div class="fin-card">
-                    <h4 style="margin-top:0;color:var(--accent);">STOCKMIND AI Platform Overview</h4>
+                    <h4 style="margin-top:0;color:var(--accent-bright) !important;">STOCKMIND AI Platform Overview</h4>
                     <p>STOCKMIND AI is an end-to-end quantitative stock analytics platform combining Yahoo Finance market ingestion, leakage-free chronological time-series preprocessing, 19 technical indicators, and five modular machine learning engines.</p>
                 </div>
                 """,
@@ -893,7 +908,7 @@ def main():
                 {"Module": "Market Clusters", "Engine": "src/clustering.py", "Capabilities": "Hopkins Tendency, K-Means, K-Medoids (PAM), Agglomerative, DIANA, BIRCH, Chameleon, Elbow, Silhouette"},
                 {"Module": "Strategy Simulator (RL)", "Engine": "src/reinforcement_learning.py", "Capabilities": "K-Armed Bandit, 18-State Market Environment, Model-Free Q-Learning, Model-Based Dyna-Q"},
                 {"Module": "Neural Net (MLP)", "Engine": "src/neural_network.py", "Capabilities": "Single Neuron Sigmoid/ReLU Calculator, Single-Layer Perceptron, MLP Backpropagation Classifier"},
-            ]), use_container_width=True)
+            ]), width="stretch")
 
     # Clean SaaS Footer (with Deploy to Cloud moved neatly to bottom)
     render_app_footer()
